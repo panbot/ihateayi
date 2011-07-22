@@ -1,0 +1,26 @@
+<html>
+<head>
+<title>ihateayi</title>
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+<script type="text/javascript">
+
+$(document).ready(function () {
+	var box = $('#whatayidid');
+	$.ajax({
+		url: 'whatayidid',
+		cache: false
+	}).done(function (str) {
+		var data = jQuery.parseJSON(str);
+		for (var i=0; i<data.length; ++i) {
+			box.append('<p>Today, ' + data[i].content + ' IHA.</p>');
+		}
+	});
+});
+</script>
+</head>
+<body>
+	<h1>Welcome to ihateayi</h1>
+	<p>log anything, everything</p>
+	<div id="whatayidid"/>
+</body>
+</html>
