@@ -80,11 +80,23 @@ body {
 	box-shadow: inset 0 1px 1px #ffffff;
 }
 
+.tell-button-disabled {
+	background: #ffffff !important;
+}
+
 </style>
 <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/ext-core/3.1.0/ext-core.js"></script>
 <script type="text/javascript">
 
-Ext.onReady(function () { refresh(); });
+Ext.onReady(function () {
+	refresh();
+	Ext.get('content').on('change', function (e, t) {
+		if (t.value != '')
+			Ext.get('tell-button').removeClass('tell-button-disabled');
+		else
+			Ext.get('tell-button').addClass('tell-button-disabled');
+	});
+});
 
 function Observable() {
 	this.events = [];
@@ -172,7 +184,7 @@ DeedView.prototype = {
 			'<div class="deed-foot">' +
 			'<button class="agree">I agree, you poor thing</button> (' + data.agreements + ') - ' + 
 			'<button class="disagree">You totally deserved it</button> (' + data.disagreements + ')<br/>' +
-			'' + data.when + ' - ' + data.who + '</div>';
+			'' + data.when + ' - ' + (data.who || 'Anonymous') + '</div>';
 	},
 
 	renderTo: function (container, position) {
@@ -205,6 +217,8 @@ function refresh() {
 }
 
 function tell() {
+	if (!document.getElementById('content').value)
+		return;
 	Ext.Ajax.request({
 		method: 'post',
 		url: 'tell',
@@ -212,7 +226,10 @@ function tell() {
 			what: document.getElementById('content').value,
 			who: document.getElementById('user').value
 		},
-		success: function() { refresh() }
+		success: function() {
+			document.getElementById('content').value = '';
+			refresh();
+		}
 	});
 }
 
@@ -223,7 +240,7 @@ function tell() {
 	<div class="tell">
 		<div>What did ayi do? <br/><textarea class="tell-content" id="content"></textarea></div>
 		<div style="float:left;margin-top:7px;">Who are you? <input class="tell-name" type="text" id="user"/></div>
-		<div style="float:right;margin-top:7px;"><button class="tell-button" onclick="tell()">Tell!</button></div>
+		<div style="float:right;margin-top:7px;"><button id="tell-button" class="tell-button tell-button-disabled" onclick="tell()">Tell!</button></div>
 	</div>
 	<div id="whatayidid"></div>
 
