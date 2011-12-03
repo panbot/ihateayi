@@ -1,26 +1,231 @@
 <html>
 <head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
 <title>ihateayi</title>
-<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+<style>
+body {
+	background:-webkit-gradient(linear,left top,left bottom,from(#c9d8ed),to(#e6f0ff)) no-repeat #e6f0ff;
+	background:-moz-linear-gradient(top,#c9d8ed,#e6f0ff) no-repeat #e6f0ff;
+	background-size:100% 225px;
+	-moz-background-size:100% 225px;
+	background-color:#e6f0ff;
+	font-family:"Lucida Grande", "Lucida Sans Unicode", Verdana, Arial, sans-serif;
+}
+
+.deed {
+	background-color: white;
+	border: 1px solid #ADADAD;
+	margin-top: 10px;
+	border-radius: 4px;
+	padding: 8px;
+	width: 600px;
+}
+
+.deed-what {
+	font-size: 13px;
+}
+
+.deed-foot {
+	margin-top: 10px;
+	line-height: 15px;
+	color: gray;
+	font-size: 11px;
+}
+
+.deed-foot button {
+	border: none;
+	margin: 0;
+	padding: 0;
+	background: none;
+	color: blue;
+	cursor: pointer;
+}
+
+.deed-foot button:hover {
+	text-decoration: underline;
+}
+
+.tell {
+	font-size: 13px;
+	line-height: 1.5em;
+	width: 600px;
+	height: 200px;
+	padding: 8px;
+	border-radius: 4px;
+	border: 1px solid #ADADAD;
+	background: white;
+}
+
+.tell-content {
+	padding: 4px;
+	border-radius: 4px;
+	border: 1px solid #ADADAD;
+	width: 600px;
+	height: 140px;
+}
+
+.tell-name {
+	padding: 4px;
+	border-radius: 4px;
+	border: 1px solid #ADADAD;
+}
+
+.tell-button {
+	border: 1px solid #ADADAD;
+	background: #D1E79B;
+	color: #666;
+	font-weight: bold;
+	padding: 6px 20px;
+	border-radius: 4px;
+	box-shadow: inset 0 1px 1px #ffffff;
+}
+
+</style>
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/ext-core/3.1.0/ext-core.js"></script>
 <script type="text/javascript">
 
-$(document).ready(function () {
-	var box = $('#whatayidid');
-	$.ajax({
-		url: 'whatayidid',
-		cache: false
-	}).done(function (str) {
-		var data = jQuery.parseJSON(str);
-		for (var i=0; i<data.length; ++i) {
-			box.append('<p>Today, ' + data[i].content + ' IHA.</p>');
+Ext.onReady(function () { refresh(); });
+
+function Observable() {
+	this.events = [];
+}
+Observable.prototype = {
+	on: function (event, handler,  scope) {
+		this.events.push({
+			event: event,
+			handler: handler,
+			scope: scope
+		});
+	},
+
+	un: function (event, handler, scope) {
+		//TODO
+	},
+
+	fire: function (event) {
+		for (var i=0; i<this.events.length; ++i) {
+			var e = this.events[i];
+			if (e.event == event) {
+				e.handler.call(e.scope || window);
+			}
 		}
+	}
+}
+
+function Deed(data) {
+	this.data = data;
+	this.observable = new Observable();
+}
+Deed.prototype = {
+	setData: function (data) {
+		this.data = data;
+		this.observable.fire('changed');
+	},
+
+	agree: function () {
+		Ext.Ajax.request({
+			url: 'agree',
+			method: 'post',
+			params: {
+				id: this.data._id.$oid
+			},
+			success: function () {
+				++this.data.agreements;
+				this.observable.fire('changed');
+			},
+			scope: this
+		});
+	},
+
+	disagree: function () {
+		Ext.Ajax.request({
+			url: 'disagree',
+			method: 'post',
+			params: {
+				id: this.data._id.$oid
+			},
+			success: function () {
+				++this.data.disagreements;
+				this.observable.fire('changed');
+			},
+			scope: this
+		});
+	}
+}
+
+function DeedView(deed) {
+	this.deed = deed;
+	this.deed.observable.on('changed', this.onDeedChange, this);
+}
+DeedView.prototype = {
+	onDeedChange: function () {
+		this.refresh();
+	},
+
+	refresh: function () {
+		if (!this.rendered)
+			return;
+		var data = this.deed.data;
+		this.element.innerHTML = 
+			'<div class="deed-what">Today, ' +
+			data.what + ' IHA</div>' +
+			'<div class="deed-foot">' +
+			'<button class="agree">I agree, you poor thing</button> (' + data.agreements + ') - ' + 
+			'<button class="disagree">You totally deserved it</button> (' + data.disagreements + ')<br/>' +
+			'' + data.when + ' - ' + data.who + '</div>';
+	},
+
+	renderTo: function (container, position) {
+		this.rendered = true;
+		this.element = container.insertHtml('beforeEnd', '<div class="deed"></div>');
+		var deed = this.deed;
+		Ext.fly(this.element).on('click', function(e, t) {
+			if (Ext.fly(t).hasClass('agree')) { this.deed.agree(); }
+			else if (Ext.fly(t).hasClass('disagree')) { this.deed.disagree(); }
+		}, this);
+		this.refresh();
+	}
+}
+
+function refresh() {
+        var box = Ext.get('whatayidid');
+	box.dom.innerHTML = '';
+        Ext.Ajax.request({
+                url: 'whatayidid',
+                disableCaching: true,
+		success: function (resp) {
+                	var data = Ext.decode(resp.responseText);
+                	for (var i=0; i<data.length; ++i) {
+				var deed = new Deed(data[i]);
+				var view = new DeedView(deed);
+				view.renderTo(box, i);
+                	}
+        	}
 	});
-});
+}
+
+function tell() {
+	Ext.Ajax.request({
+		method: 'post',
+		url: 'tell',
+		params: { 
+			what: document.getElementById('content').value,
+			who: document.getElementById('user').value
+		},
+		success: function() { refresh() }
+	});
+}
+
 </script>
 </head>
 <body>
 	<h1>Welcome to ihateayi</h1>
-	<p>log anything, everything</p>
-	<div id="whatayidid"/>
+	<div class="tell">
+		<div>What did ayi do? <br/><textarea class="tell-content" id="content"></textarea></div>
+		<div style="float:left;margin-top:7px;">Who are you? <input class="tell-name" type="text" id="user"/></div>
+		<div style="float:right;margin-top:7px;"><button class="tell-button" onclick="tell()">Tell!</button></div>
+	</div>
+	<div id="whatayidid"></div>
+
 </body>
 </html>
