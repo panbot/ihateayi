@@ -57,6 +57,8 @@ body {
 }
 
 .tell-content {
+	font-size: 13px;
+	line-height: 1.5em;
 	padding: 4px;
 	border-radius: 4px;
 	border: 1px solid #ADADAD;
@@ -65,6 +67,8 @@ body {
 }
 
 .tell-name {
+	font-size: 13px;
+	line-height: 1.5em;
 	padding: 4px;
 	border-radius: 4px;
 	border: 1px solid #ADADAD;
@@ -94,6 +98,18 @@ Ext.onReady(function () {
 
 function Observable() {
 	this.events = [];
+	Ext.get('content').on('keyup', function () {
+		var userInput = document.getElementById('content').value;
+		if (userInput !== '') {
+			document.getElementById('preview').innerHTML = DeedView.prototype.getMessage(userInput);
+			Ext.get('tell-button').removeClass('tell-button-disabled');
+		} else {
+			document.getElementById('preview').innerHTML = '';
+			Ext.get('tell-button').addClass('tell-button-disabled');
+		}
+	}, window, {
+		buffer: 300
+	});
 }
 Observable.prototype = {
 	on: function (event, handler,  scope) {
@@ -173,13 +189,17 @@ DeedView.prototype = {
 			return;
 		var data = this.deed.data;
 		this.element.innerHTML = 
-			'<div class="deed"><div class="deed-what">Today, ' +
-			data.what + ' IHA</div>' +
+			'<div class="deed"><div class="deed-what">' +
+			this.getMessage(data.what) + '</div>' +
 			'<div class="deed-foot">' +
 			'<button class="agree">I agree, you poor thing</button> (' + data.agreements + ') - ' + 
 			'<button class="disagree">You totally deserved it</button> (' + data.disagreements + ')<br/>' +
 			'' + data.when + ' - ' + (data.who || 'Anonymous') + '</div></div>';
 		Ext.fly(this.element).slideIn();
+	},
+
+	getMessage: function (userInput) {
+		return 'Today, ' + userInput + ' IHA';
 	},
 
 	renderTo: function (container, position) {
@@ -227,6 +247,7 @@ function tell() {
 			var view = new DeedView(deed);
 			view.renderTo(Ext.get('whatayidid'));
 			document.getElementById('content').value = '';
+			document.getElementById('preview').innerHTML = '';
 		}
 	});
 }
@@ -240,6 +261,9 @@ function tell() {
 		<div style="float:left;margin-top:7px;">Who are you? <input class="tell-name" type="text" id="user"/></div>
 		<div style="float:right;margin-top:7px;"><button id="tell-button" class="tell-button" onclick="tell()">Tell!</button></div>
 	</div>
+	<div id="preview-ct" class="deed">
+		<span style="color:gray;font-size:11px">Preview of your message: </span>
+		<div id="preview" class="deed-what" style="margin-top:8px;"></div></div>
 	<div id="whatayidid"></div>
 
 </body>
