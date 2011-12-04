@@ -90,12 +90,6 @@ body {
 
 Ext.onReady(function () {
 	refresh();
-	Ext.get('content').on('change', function (e, t) {
-		if (t.value != '')
-			Ext.get('tell-button').removeClass('tell-button-disabled');
-		else
-			Ext.get('tell-button').addClass('tell-button-disabled');
-	});
 });
 
 function Observable() {
@@ -179,17 +173,18 @@ DeedView.prototype = {
 			return;
 		var data = this.deed.data;
 		this.element.innerHTML = 
-			'<div class="deed-what">Today, ' +
+			'<div class="deed"><div class="deed-what">Today, ' +
 			data.what + ' IHA</div>' +
 			'<div class="deed-foot">' +
 			'<button class="agree">I agree, you poor thing</button> (' + data.agreements + ') - ' + 
 			'<button class="disagree">You totally deserved it</button> (' + data.disagreements + ')<br/>' +
-			'' + data.when + ' - ' + (data.who || 'Anonymous') + '</div>';
+			'' + data.when + ' - ' + (data.who || 'Anonymous') + '</div></div>';
+		Ext.fly(this.element).slideIn();
 	},
 
 	renderTo: function (container, position) {
 		this.rendered = true;
-		this.element = container.insertHtml('beforeEnd', '<div class="deed"></div>');
+		this.element = container.insertHtml('afterBegin', '<div></div>');
 		var deed = this.deed;
 		Ext.fly(this.element).on('click', function(e, t) {
 			if (Ext.fly(t).hasClass('agree')) { this.deed.agree(); }
@@ -226,9 +221,12 @@ function tell() {
 			what: document.getElementById('content').value,
 			who: document.getElementById('user').value
 		},
-		success: function() {
+		success: function(resp) {
+			var data = Ext.decode(resp.responseText);
+			var deed = new Deed(data);
+			var view = new DeedView(deed);
+			view.renderTo(Ext.get('whatayidid'));
 			document.getElementById('content').value = '';
-			refresh();
 		}
 	});
 }
@@ -240,7 +238,7 @@ function tell() {
 	<div class="tell">
 		<div>What did ayi do? <br/><textarea class="tell-content" id="content"></textarea></div>
 		<div style="float:left;margin-top:7px;">Who are you? <input class="tell-name" type="text" id="user"/></div>
-		<div style="float:right;margin-top:7px;"><button id="tell-button" class="tell-button tell-button-disabled" onclick="tell()">Tell!</button></div>
+		<div style="float:right;margin-top:7px;"><button id="tell-button" class="tell-button" onclick="tell()">Tell!</button></div>
 	</div>
 	<div id="whatayidid"></div>
 

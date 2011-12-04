@@ -49,7 +49,7 @@ post '/tell' do
 		'disagreements' => 0,
 	}
 	deedCollection.insert(deed)
-	'success'
+	JSON.generate(deed)
 end
 
 get '/purge' do
